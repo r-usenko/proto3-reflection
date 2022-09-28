@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = ".;api";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.EnumValueOptions {
+  string Stream = 50000;
+  string Subject = 50001;
+  string Consumer = 50002;
+}
+extend google.protobuf.MethodOptions {
+  EnumReply           Reply = 50000;
+  EnumSubscribe       Subscribe = 50001;
+  EnumSubscribeQueue  SubscribeQueue = 50002;
+}
+
+enum EnumSubscribe {
+  SUB_PLAYER_UPDATE_EVENT = 0     [(Subject) = "players.player.delete"];
+}
+
+enum EnumReply {
+  REP_PLAYER_UPDATE_EVENT = 0     [(Subject) = "players.player.create"];
+}
+
+enum EnumSubscribeQueue {
+  QUE_PLAYER_UPDATE_EVENT = 0     [(Subject) = "players.player.update", (Stream) = "ANTI_FRAUD", (Consumer) = "CABINET_REVIEW_STATUS_UPDATE"];
+}
+
+service Service1 {
+  rpc Method11(Request1) returns (Response1) {
+    option (Subscribe) = SUB_PLAYER_UPDATE_EVENT;
+    option (Reply) = REP_PLAYER_UPDATE_EVENT;
+  }
+}
+
+service Service2 {
+  rpc Method21(Request1) returns (Response1) {
+  }
+  rpc Method22(Request1) returns (Response1) {
+    option (SubscribeQueue) = QUE_PLAYER_UPDATE_EVENT;
+  }
+  rpc Method23(Request2) returns (Response2) {
+    option (SubscribeQueue) = QUE_PLAYER_UPDATE_EVENT;
+  }
+}
+
+message Request1 {}
+message Response1 {}
+
+message Request2 {}
+message Response2 {}
