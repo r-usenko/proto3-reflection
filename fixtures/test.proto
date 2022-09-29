@@ -10,6 +10,7 @@ extend google.protobuf.EnumValueOptions {
   string Stream = 50000;
   string Subject = 50001;
   string Consumer = 50002;
+  bool IsStreamTransport = 50003;
 }
 extend google.protobuf.MethodOptions {
   EnumReply           Reply = 50000;
@@ -18,11 +19,11 @@ extend google.protobuf.MethodOptions {
 }
 
 enum EnumSubscribe {
-  SUB_PLAYER_UPDATE_EVENT = 0     [(Subject) = "players.player.delete"];
+  SUB_PLAYER_UPDATE_EVENT = 0     [(Subject) = "players.player.delete", (IsStreamTransport) = false];
 }
 
 enum EnumReply {
-  REP_PLAYER_UPDATE_EVENT = 0     [(Subject) = "players.player.create"];
+  REP_PLAYER_UPDATE_EVENT = 0     [(Subject) = "players.player.create", (IsStreamTransport) = true];
 }
 
 enum EnumSubscribeQueue {

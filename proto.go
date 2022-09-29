@@ -13,7 +13,7 @@ type Callback func(context.Context, proto.Message) (proto.Message, error)
 type methodInfo struct {
 	service   protoreflect.ServiceDescriptor
 	method    protoreflect.MethodDescriptor
-	scenarios map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]string
+	scenarios map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{}
 }
 
 func (m *methodInfo) MethodDescriptor() protoreflect.MethodDescriptor {
@@ -27,7 +27,7 @@ func (m *methodInfo) ServiceDescriptor() protoreflect.ServiceDescriptor {
 // Scenarios
 //
 //	map[scenario]map[options]
-func (m *methodInfo) Scenarios() map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]string {
+func (m *methodInfo) Scenarios() map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{} {
 	return m.scenarios
 }
 
@@ -65,7 +65,7 @@ func ParseServices(packageName protoreflect.FullName, enumOptions []protoreflect
 				mi := methodInfo{
 					method:    method,
 					service:   service,
-					scenarios: make(map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]string),
+					scenarios: make(map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{}),
 				}
 
 				for _, enum := range methodOptions {
@@ -78,7 +78,7 @@ func ParseServices(packageName protoreflect.FullName, enumOptions []protoreflect
 						continue
 					}
 
-					mi.scenarios[enum] = make(map[protoreflect.ExtensionType]string)
+					mi.scenarios[enum] = make(map[protoreflect.ExtensionType]interface{})
 					enumValOptions := enumVal.Descriptor().Values().ByNumber(enumVal.Number()).Options()
 
 					for _, opt := range enumOptions {
@@ -86,7 +86,7 @@ func ParseServices(packageName protoreflect.FullName, enumOptions []protoreflect
 							continue
 						}
 
-						mi.scenarios[enum][opt] = proto.GetExtension(enumValOptions, opt).(string)
+						mi.scenarios[enum][opt] = proto.GetExtension(enumValOptions, opt)
 					}
 				}
 

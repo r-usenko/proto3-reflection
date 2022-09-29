@@ -10,23 +10,26 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func TestParse(t *testing.T) {
+func TestParseServices(t *testing.T) {
 	methods := reflection.ParseServices("api", []protoreflect.ExtensionType{
 		api.E_Subject,
 		api.E_Consumer,
 		api.E_Stream,
+		api.E_IsStreamTransport,
 	}, []protoreflect.ExtensionType{
 		api.E_Reply,
 		api.E_Subscribe,
 		api.E_SubscribeQueue,
 	})
 
-	tests := map[string]map[string]string{
+	tests := map[string]map[string]interface{}{
 		"Service1.Method11.Reply": {
-			"Subject": "players.player.create",
+			"Subject":           "players.player.create",
+			"IsStreamTransport": true,
 		},
 		"Service1.Method11.Subscribe": {
-			"Subject": "players.player.delete",
+			"Subject":           "players.player.delete",
+			"IsStreamTransport": false,
 		},
 		"Service2.Method22.SubscribeQueue": {
 			"Stream":   "ANTI_FRAUD",
@@ -50,7 +53,7 @@ func TestParse(t *testing.T) {
 				scenario.TypeDescriptor().Name(),
 			)
 
-			var optionsMap = make(map[string]string)
+			var optionsMap = make(map[string]interface{})
 			for k, v := range options {
 				optionsMap[string(k.TypeDescriptor().Name())] = v
 			}
