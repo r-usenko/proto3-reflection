@@ -79,7 +79,20 @@ func TestParseImplementation(t *testing.T) {
 		"interface":    new(api.Service1Server),
 	})
 
-	fmt.Println(m)
+	methods := make(map[string]struct{})
+	for k := range m {
+		methods[k] = struct{}{}
+	}
+
+	if !reflect.DeepEqual(methods, map[string]struct{}{
+		"api.Method11":             {},
+		"api.Method21":             {},
+		"api.Method22":             {},
+		"api.Method23":             {},
+		"api.UndefinedProtoMethod": {},
+	}) {
+		t.Errorf("FAILED: Result are different %v\n", methods)
+	}
 }
 
 type implementation struct {
