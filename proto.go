@@ -2,59 +2,84 @@ package reflection
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-type Callback func(context.Context, proto.Message) (proto.Message, error)
+var ctxType = reflect.TypeOf((*context.Context)(nil)).Elem()
+var protoType = reflect.TypeOf((*proto.Message)(nil)).Elem()
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-type methodInfo struct {
-	service   protoreflect.ServiceDescriptor
-	method    protoreflect.MethodDescriptor
-	scenarios map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{}
+type MethodInfo struct {
+	Service protoreflect.ServiceDescriptor
+	Method  protoreflect.MethodDescriptor
+
+	//map[scenario]map[options]extensionValue
+	Scenarios map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{}
 }
 
-func (m *methodInfo) MethodDescriptor() protoreflect.MethodDescriptor {
-	return m.method
+type ImplementationInfo struct {
+	MethodValue        reflect.Value
+	RequestMessageType reflect.Type
 }
 
-func (m *methodInfo) ServiceDescriptor() protoreflect.ServiceDescriptor {
-	return m.service
-}
-
-// Scenarios
+// ParseImplementation
 //
-//	map[scenario]map[options]
-func (m *methodInfo) Scenarios() map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{} {
-	return m.scenarios
+//	{package}.{serviceName}:*implementationStruct
+func ParseImplementation(services map[string]interface{}) map[string]ImplementationInfo {
+	var res = make(map[string]ImplementationInfo)
+
+	for serviceName, implementation := range services {
+		serviceValue := reflect.ValueOf(implementation)
+
+		if !serviceValue.IsValid() || serviceValue.IsZero() {
+			//skip invalid implementation
+			continue
+		}
+
+		serviceType := serviceValue.Type()
+		if serviceType.Kind() != reflect.Struct && serviceType.Kind() != reflect.Pointer {
+			//skip invalid implementation
+			continue
+		}
+
+		for i := 0; i < serviceValue.NumMethod(); i++ {
+			methodValue := serviceValue.Method(i)
+			methodType := methodValue.Type()
+
+			//func(context.Context, proto.Message) (proto.Message, error)
+			if methodType.NumIn() != 2 ||
+				methodType.NumOut() != 2 ||
+				!methodType.In(0).ConvertibleTo(ctxType) ||
+				!methodType.In(1).ConvertibleTo(protoType) ||
+				!methodType.Out(0).ConvertibleTo(protoType) ||
+				!methodType.Out(1).ConvertibleTo(errorType) {
+
+				//skip not proto method
+				continue
+			}
+
+			res[fmt.Sprintf("%s.%s", serviceName, serviceType.Method(i).Name)] = ImplementationInfo{
+				MethodValue:        methodValue,
+				RequestMessageType: methodType.In(1),
+			}
+		}
+	}
+
+	return res
 }
 
-// GenerateIOMessage Request/Response from method
-func GenerateIOMessage(method protoreflect.MethodDescriptor) (proto.Message, proto.Message, error) {
-	var msgPI, msgPO protoreflect.MessageType
-	var err error
-
-	msgPI, err = protoregistry.GlobalTypes.FindMessageByName(method.Input().FullName())
-	if err != nil {
-		return nil, nil, err
-	}
-	msgPO, err = protoregistry.GlobalTypes.FindMessageByName(method.Output().FullName())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return msgPI.New().Interface(), msgPO.New().Interface(), nil
-}
-
-// ParseServices
+// ParseProtoServices
 //
 //	 package {$packageName}
 //		extend google.protobuf.EnumValueOptions []{enumOptions}
 //		extend google.protobuf.MethodOptions []{methodOptions}
-func ParseServices(packageName protoreflect.FullName, enumOptions []protoreflect.ExtensionType, methodOptions []protoreflect.ExtensionType) map[protoreflect.FullName]methodInfo {
-	result := make(map[protoreflect.FullName]methodInfo)
+func ParseProtoServices(packageName protoreflect.FullName, enumOptions []protoreflect.ExtensionType, methodOptions []protoreflect.ExtensionType) map[protoreflect.FullName]MethodInfo {
+	result := make(map[protoreflect.FullName]MethodInfo)
 
 	protoregistry.GlobalFiles.RangeFilesByPackage(packageName, func(descriptor protoreflect.FileDescriptor) bool {
 		for sI := 0; sI < descriptor.Services().Len(); sI++ {
@@ -62,10 +87,10 @@ func ParseServices(packageName protoreflect.FullName, enumOptions []protoreflect
 
 			for mI := 0; mI < service.Methods().Len(); mI++ {
 				method := service.Methods().Get(mI)
-				mi := methodInfo{
-					method:    method,
-					service:   service,
-					scenarios: make(map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{}),
+				mi := MethodInfo{
+					Method:    method,
+					Service:   service,
+					Scenarios: make(map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{}),
 				}
 
 				for _, enum := range methodOptions {
@@ -78,7 +103,7 @@ func ParseServices(packageName protoreflect.FullName, enumOptions []protoreflect
 						continue
 					}
 
-					mi.scenarios[enum] = make(map[protoreflect.ExtensionType]interface{})
+					mi.Scenarios[enum] = make(map[protoreflect.ExtensionType]interface{})
 					enumValOptions := enumVal.Descriptor().Values().ByNumber(enumVal.Number()).Options()
 
 					for _, opt := range enumOptions {
@@ -86,7 +111,7 @@ func ParseServices(packageName protoreflect.FullName, enumOptions []protoreflect
 							continue
 						}
 
-						mi.scenarios[enum][opt] = proto.GetExtension(enumValOptions, opt)
+						mi.Scenarios[enum][opt] = proto.GetExtension(enumValOptions, opt)
 					}
 				}
 

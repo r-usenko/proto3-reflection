@@ -1,6 +1,7 @@
 package reflection_test
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestParseServices(t *testing.T) {
-	methods := reflection.ParseServices("api", []protoreflect.ExtensionType{
+	methods := reflection.ParseProtoServices("api", []protoreflect.ExtensionType{
 		api.E_Subject,
 		api.E_Consumer,
 		api.E_Stream,
@@ -46,10 +47,10 @@ func TestParseServices(t *testing.T) {
 	for methodFullName, info := range methods {
 		t.Logf("Method: %q\n", methodFullName)
 
-		for scenario, options := range info.Scenarios() {
+		for scenario, options := range info.Scenarios {
 			key := fmt.Sprintf("%s.%s.%s",
-				info.ServiceDescriptor().Name(),
-				info.MethodDescriptor().Name(),
+				info.Service.Name(),
+				info.Method.Name(),
 				scenario.TypeDescriptor().Name(),
 			)
 
@@ -64,3 +65,62 @@ func TestParseServices(t *testing.T) {
 		}
 	}
 }
+
+func TestParseImplementation(t *testing.T) {
+	s := new(implementation)
+
+	m := reflection.ParseImplementation(map[string]interface{}{
+		"api.Service1": s.UnimplementedService1Server,
+		"api.Service2": s.UnimplementedService2Server,
+		"api":          s,
+		"api2":         implementation{},
+		"nil":          nil,
+		"string":       "text",
+		"interface":    new(api.Service1Server),
+	})
+
+	fmt.Println(m)
+}
+
+type implementation struct {
+	api.UnimplementedService1Server
+	api.UnimplementedService2Server
+}
+
+func (m *implementation) Method21(ctx context.Context, request1 *api.Request1) (*api.Response1, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *implementation) Method22(ctx context.Context, request1 *api.Request1) (*api.Response1, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *implementation) Method23(ctx context.Context, request2 *api.Request2) (*api.Response2, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *implementation) Method11(ctx context.Context, request1 *api.Request1) (*api.Response1, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *implementation) UndefinedProtoMethod(ctx context.Context, request1 *api.Request1) (*api.Response1, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *implementation) hiddenMethod(ctx context.Context, request1 *api.Request1) (*api.Response1, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *implementation) AnotherMethod() {
+	//TODO implement me
+	panic("implement me")
+}
+
+var _ api.Service1Server = (*implementation)(nil)
+var _ api.Service2Server = (*implementation)(nil)
