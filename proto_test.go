@@ -1,4 +1,4 @@
-package reflection_test
+package protor_test
 
 import (
 	"context"
@@ -6,13 +6,13 @@ import (
 	"reflect"
 	"testing"
 
-	reflection "github.com/r-usenko/proto3-reflection"
-	api "github.com/r-usenko/proto3-reflection/fixtures/gen"
+	"github.com/r-usenko/protor"
+	api "github.com/r-usenko/protor/fixtures/gen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func TestParseServices(t *testing.T) {
-	methods := reflection.ParseProtoServices("api", []protoreflect.ExtensionType{
+	methods := protor.ParseProtoServices("api", []protoreflect.ExtensionType{
 		api.E_Subject,
 		api.E_Consumer,
 		api.E_Stream,
@@ -69,7 +69,7 @@ func TestParseServices(t *testing.T) {
 func TestParseImplementation(t *testing.T) {
 	s := new(implementation)
 
-	m := reflection.ParseImplementation(map[string]interface{}{
+	m := protor.ParseImplementation(map[string]interface{}{
 		"api.Service1": s.UnimplementedService1Server,
 		"api.Service2": s.UnimplementedService2Server,
 		"api":          s,

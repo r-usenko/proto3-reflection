@@ -1,4 +1,4 @@
-module github.com/r-usenko/proto3-reflection
+module github.com/r-usenko/protor
 
 go 1.19
 
