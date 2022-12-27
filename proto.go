@@ -100,6 +100,9 @@ func ParseProtoServices(packageName protoreflect.FullName, enumOptions []protore
 
 					moV := proto.GetExtension(method.Options(), enum)
 					if _, ok := moV.(string); ok {
+						if _, mapExist := mi.Scenarios[enum]; !mapExist {
+							mi.Scenarios[enum] = make(map[protoreflect.ExtensionType]interface{})
+						}
 						mi.Scenarios[enum][enum] = moV
 						continue
 					}
@@ -109,7 +112,9 @@ func ParseProtoServices(packageName protoreflect.FullName, enumOptions []protore
 						continue
 					}
 
-					mi.Scenarios[enum] = make(map[protoreflect.ExtensionType]interface{})
+					if _, mapExist := mi.Scenarios[enum]; !mapExist {
+						mi.Scenarios[enum] = make(map[protoreflect.ExtensionType]interface{})
+					}
 					enumValOptions := enumVal.Descriptor().Values().ByNumber(enumVal.Number()).Options()
 
 					for _, opt := range enumOptions {
