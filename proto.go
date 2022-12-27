@@ -93,7 +93,8 @@ func ParseProtoServices(packageName protoreflect.FullName, enumOptions []protore
 					Scenarios: make(map[protoreflect.ExtensionType]map[protoreflect.ExtensionType]interface{}),
 				}
 
-				for _, enum := range methodOptions {
+				for id, enum := range methodOptions {
+					fmt.Println(method.FullName(), id)
 					if !proto.HasExtension(method.Options(), enum) {
 						continue
 					}
