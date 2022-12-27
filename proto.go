@@ -99,7 +99,7 @@ func ParseProtoServices(packageName protoreflect.FullName, enumOptions []protore
 					}
 
 					moV := proto.GetExtension(method.Options(), enum)
-					if _, ok := moV.(string); ok
+					if _, ok := moV.(string); ok {
 						mi.Scenarios[enum][enum] = moV
 						continue
 					}
